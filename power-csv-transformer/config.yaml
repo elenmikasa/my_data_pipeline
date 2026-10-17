@@ -1,0 +1,35 @@
+companies:
+  hepco:
+    name: "北海道電力(HEPCO)"
+    url: "https://www.hepco.co.jp/network/con_service/public_document/supply_demand_results/csv/eria_jukyu_{yyyymm}_01.csv"
+
+  tepco:
+    name: "東京電力(TEPCO)"
+    url: "https://www.tepco.co.jp/forecast/html/images/eria_jukyu_{yyyymm}_03.csv"
+
+header_mapping:
+  "DATE": "date"
+  "TIME": "time"
+  "エリア需要": "area_demand"
+  "原子力": "nuclear"
+  "火力(LNG)": "thermal_lng"
+  "火力(石炭)": "thermal_coal"
+  "火力(石油)": "thermal_oil"
+  "火力(その他)": "thermal_other"
+  "火力出力制御量": "thermal_output_control"
+  "水力": "hydro"
+  "地熱": "geothermal"
+  "バイオマス": "biomass"
+  "バイオマス出力制御量": "biomass_output_control"
+  "太陽光発電実績": "solar_generation"
+  "太陽光出力制御量": "solar_output_control"
+  "風力発電実績": "wind_generation"
+  "風力出力制御量": "wind_output_control"
+  "揚水": "pumped_storage"
+  "蓄電池": "battery"
+  "連系線": "interconnection"
+  "その他": "other"
+  "合計": "total"
+
+bucket_name: "elenmikasa"
+common_folder: "eria_jukyu_last_month"
