@@ -1,0 +1,10 @@
+companies:
+  hepco:
+    name: "北海道電力(HEPCO)"
+    url: "https://www.hepco.co.jp/network/con_service/public_document/supply_demand_results/csv/eria_jukyu_{yyyymm}_01.csv"
+
+  tepco:
+    name: "東京電力(TEPCO)"
+    url: "https://www.tepco.co.jp/forecast/html/images/eria_jukyu_{yyyymm}_03.csv"
+
+bucket_name: "elenmikasa"
