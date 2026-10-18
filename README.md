@@ -1,7 +1,20 @@
-# Google Cloud（Workflows / Cloud Run Jobs）を活用したサーバーレスデータパイプライン
+# Google Cloud（Workflows / Cloud Run Jobs / dbt / BigQuery）を活用したサーバーレスデータパイプライン
 
-本ドキュメントでは、Cloud Workflows を用いたデータパイプライン（`power-csv-fetcher-job` および `power-csv-transformer-job` の逐次実行）の構築手順とデプロイ方法について説明します。
+本ドキュメントでは、Cloud Workflows を用いたデータパイプライン（power-csv-fetcher-job、power-csv-transformer-job、および dbt-power-job による BigQuery データマート構築の逐次実行）の構築手順とデプロイ方法について説明します
 
+## 💡 アーキテクチャの設計思想 (ELT)
+
+1. **E (Extract / 抽出)**
+   * **担当**: `power-csv-fetcher-job`
+   * **内容**: 外部Webサイトから最新のエリア需給実績CSVデータをそのまま抽出します。
+
+2. **L (Load / ロード)**
+   * **担当**: GCS ＆ BigQuery 外部テーブル
+   * **内容**: 抽出・加工したCSVファイルを Cloud Storage (GCS) に配置し、BigQuery から **外部テーブル（External Table）として直接参照できるようにロード（結びつけ）** します。データを物理的に二重持ちせず、ストレージ（GCS）をそのままDWHからクエリできる状態にします。
+
+3. **T (Transform / 変換・モデリング)**
+   * **担当**: `dbt-power-job`（BigQuery × dbt）
+   * **内容**: BigQueryの計算パワーを活かし、外部テーブルとしてロードされたデータを `dbt (dbt build)` でクレンジング・結合・集計し、分析用のデータマート（`marts/`）を構築します。
 ---
 ## 処理フロー図
 
@@ -12,26 +25,36 @@ flowchart TD
     end
 
     subgraph GCP["Google Cloud Platform"]
-        WF["Cloud Workflows<br>(power-etl-workflow)"]
+        subgraph WF["Cloud Workflows (power-etl-workflow)"]
+            direction TD
+            Step1["1. HTTPリクエストによるCSV取得<br>(power-csv-fetcher-job)"]
+            Step2["2. BigQuery用のヘッダー加工<br>(power-csv-transformer-job)"]
+            Step3["3. dbt build によるデータマート構築<br>(dbt-power-job)"]
 
-        subgraph CloudRun["Cloud Run Jobs"]
-            Fetcher["power-csv-fetcher-job<br>(HTTPクライアントによるCSV自動ダウンロード)"]
-            Transformer["power-csv-transformer-job<br>(BigQuery用にヘッダー加工)"]
+            Step1 -->|完了を待つ| Step2
+            Step2 -->|完了を待つ| Step3
         end
 
         subgraph Storage["Cloud Storage (GCS)"]
-            RawGCS[("GCS (raw/)\n未加工CSVファイル")]
-            ProcessedGCS[("GCS (eria_jukyu_last_month/)\n加工済みCSVファイル")]
+            RawGCS[("GCS (raw/)<br>未加工CSV")]
+            ProcessedGCS[("GCS (eria_jukyu_last_month/)<br>加工済みCSV")]
+        end
+
+        subgraph DWH["BigQuery"]
+            BigQueryDB[("BigQuery<br>(power_demand)")]
         end
     end
 
-    WF -->|1. 起動呼び出し| Fetcher
-    Fetcher -->|2. CSV取得| WEB
-    Fetcher -->|3. 保存| RawGCS
+    %% データとジョブの連携
+    WF -.->|起動| Step1
+    Step1 -->|CSV取得| WEB
+    Step1 -->|保存| RawGCS
     
-    WF -->|4. Fetcher完了後に起動| Transformer
-    RawGCS -->|5. 読み込み| Transformer
-    Transformer -->|6. 加工済みCSV出力| ProcessedGCS
+    Step2 -->|読み込み| RawGCS
+    Step2 -->|加工済みCSV出力| ProcessedGCS
+
+    Step3 -->|データ参照 / ロード| ProcessedGCS
+    Step3 -->|dbt build 実行| BigQueryDB
 ```
 ## 1. 事前準備 (IAM 権限の設定)
 
@@ -74,8 +97,6 @@ WORKFLOW_NAME: power-etl-workflow
 PowerShell 環境（Windows）でデプロイスクリプトを実行します。
 
 ```powershell
-.\deploy.ps1
+python deploy_workflow.py
 ```
 
-> **文字コードに関する注意**:  
-> PowerShell で日本語ログを正しく表示するため、`deploy.ps1` は **`UTF-8 with BOM`** 形式で保存してください。

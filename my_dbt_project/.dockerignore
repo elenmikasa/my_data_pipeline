@@ -1,0 +1,13 @@
+# Gitや仮想環境など
+.git
+.gitignore
+.venv
+venv/
+
+# dbtの成果物やログ（コンテナ内で新しく生成するため不要）
+target/
+logs/
+
+# その他、不要なファイルやOS固有のファイル
+.DS_Store
+Thumbs.db

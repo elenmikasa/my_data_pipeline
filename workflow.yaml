@@ -3,7 +3,7 @@ main:
     - logStart:
         call: sys.log
         args:
-          text: "電力データETLパイプライン（Fetcher & Transformer）を開始します"
+          text: "電力データETLパイプライン（Fetcher & Transformer & dbt）を開始します"
 
     # 1. Fetcherジョブを実行し、完了を待つ
     - runFetcher:
@@ -20,6 +20,14 @@ main:
           name: ${ "namespaces/" + sys.get_env("PROJECT_ID") + "/jobs/power-csv-transformer-job" }
           location: ${ sys.get_env("REGION") }
         result: transformerResult
+
+    # 3. dbtジョブを実行し、完了を待つ
+    - runDbt:
+        call: googleapis.run.v1.namespaces.jobs.run
+        args:
+          name: ${ "namespaces/" + sys.get_env("PROJECT_ID") + "/jobs/dbt-power-job" }
+          location: ${ sys.get_env("REGION") }
+        result: dbtResult
 
     - logEnd:
         call: sys.log

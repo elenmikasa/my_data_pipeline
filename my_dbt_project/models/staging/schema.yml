@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: power_demand
+    database: project-83207d50-36f7-43fe-874
+    schema: power_demand
+    tables:
+      - name: eria_jukyu_last_month_01_converted_header
+      - name: eria_jukyu_last_month_03_converted_header
